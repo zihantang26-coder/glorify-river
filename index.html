@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="River">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#F4F2EC">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Glorify · River Versions</title>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:opsz,wght@6..72,500;6..72,600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: 安静的作品集索引，让每一版自己说话
+   IDEA: 像设计评审时并排翻看的版本册
+   PICTURE: 每个版本就是它自己的可交互 demo，占满主区域
+   COLOUR and TYPE: 与 River 原型同一套纸色与衬线，标签只用墨色和灰
+   LAYOUT: 顶部一条版本切换栏，下面是当前版本 */
+:root{--paper:#F4F2EC;--ink:#1F1D1A;--mute:#7A766E;--line:#DEDAD1;color-scheme:light}
+*{box-sizing:border-box;min-width:0}
+html,body{height:100%}
+body{margin:0;background:#E9E7E1;color:var(--ink);font:15px/1.5 "Helvetica Neue",Helvetica,Arial,"PingFang SC","Noto Sans SC",sans-serif;display:flex;flex-direction:column;overflow:hidden}
+header{display:flex;align-items:center;gap:22px;flex-wrap:wrap;padding:12px max(3vw,16px);background:var(--paper);border-bottom:1px solid var(--line)}
+.brand{font:600 22px/1 "Tiempos Fine","Tiempos Text",Newsreader,Georgia,serif;white-space:nowrap}
+.brand small{font:13px "Helvetica Neue",Arial,sans-serif;color:var(--mute);margin-left:8px}
+nav{display:flex;gap:6px;flex-wrap:wrap}
+nav a{display:flex;flex-direction:column;justify-content:center;min-height:44px;padding:4px 14px;border-radius:12px;color:var(--ink);text-decoration:none;border:1px solid transparent}
+nav a b{font-weight:600;font-size:14px}
+nav a span{font-size:12px;color:var(--mute)}
+nav a:hover{border-color:var(--line)}
+nav a[aria-current=page]{background:var(--ink);color:#fff}
+nav a[aria-current=page] span{color:#CFCBC2}
+nav a:focus-visible{outline:2px solid #6C8FE0;outline-offset:2px}
+.open{margin-left:auto;font-size:13px;color:var(--mute)}
+.open a{color:var(--ink)}
+.notes{background:#FBF8F1;border-bottom:1px solid var(--line);padding:0 max(3vw,16px);font-size:13.5px;color:#4A4741}
+.notes[hidden]{display:none}
+.notes summary{cursor:pointer;min-height:40px;display:flex;align-items:center;gap:8px;font-weight:600;color:var(--ink);list-style:none}
+.notes summary::-webkit-details-marker{display:none}
+.notes summary::before{content:"▸";font-size:11px;color:var(--mute);transition:transform .2s}
+.notes details[open] summary::before{transform:rotate(90deg)}
+.notes summary span{font-weight:400;color:var(--mute)}
+.notes ul{margin:0 0 12px;padding-left:1.2em;max-width:900px}.notes li{margin:4px 0;line-height:1.55}
+.notes b{color:var(--ink)}
+main{flex:1;position:relative;min-height:0}
+iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#E9E7E1}
+@media(max-width:600px) and (pointer:coarse){.open,.brand,.notes{display:none!important}header{gap:0;padding:6px 8px;justify-content:center}nav{flex-wrap:nowrap;gap:4px}nav a{min-height:36px;padding:2px 12px;border-radius:10px}nav a span{display:none}}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand">River<small>版本册</small></div>
+  <nav id="nav" aria-label="版本"></nav>
+  <div class="open">单独打开：<a id="solo" href="v3/index.html">当前版本</a></div>
+</header>
+<section class="notes" id="notes" hidden><details><summary>备注 <span id="ncount"></span></summary><ul id="nlist"></ul></details></section>
+<main><iframe id="frame" title="River 原型" src="about:blank"></iframe></main>
+<script>
+{
+const V=[
+  {id:'v1',name:'V1',sub:'Soft light · 现有美术',src:'v1/index.html'},
+  {id:'v2',name:'V2',sub:'梦境河谷 · Soul 柔焦',src:'v2/index.html',notes:[
+    {date:'2026-11-24',title:'稳定性：显卡资源被收回时不再白屏',text:'手机切到后台或内存紧张时，系统可能会收回 V2 场景用的显卡资源。之前这种情况下画面会直接变空白，现在会先显示一张柔和的渐变底图，资源恢复后自动重新加载。我模拟了一次资源被收回，没有报错。'}
+  ]},
+  {id:'v3',name:'V3',sub:'纸上的河 · 手绘插画',src:'v3/index.html'}
+];
+const nav=document.getElementById('nav'),fr=document.getElementById('frame'),solo=document.getElementById('solo');
+nav.innerHTML=V.map(v=>`<a href="#${v.id}" data-id="${v.id}"><b></b><span></span></a>`).join('');
+nav.querySelectorAll('a').forEach((a,i)=>{a.querySelector('b').textContent=V[i].name;a.querySelector('span').textContent=V[i].sub});
+function show(){const id=(location.hash||'').slice(1);const v=V.find(x=>x.id===id)||V[V.length-1];
+  nav.querySelectorAll('a').forEach(a=>a.toggleAttribute('aria-current',a.dataset.id===v.id)&&a.setAttribute('aria-current','page'));
+  if(!fr.src.endsWith(v.src))fr.src=v.src;solo.href=v.src;document.title='Glorify · River '+v.name;
+  const nt=document.getElementById('notes'),nl=document.getElementById('nlist');const ns=v.notes||[];nt.hidden=!ns.length;
+  document.getElementById('ncount').textContent=ns.length?`· ${v.name} · ${ns.length} 条`:'';
+  nl.innerHTML=ns.map(()=>'<li><b></b> <span></span></li>').join('');
+  [...nl.children].forEach((li,i)=>{li.querySelector('b').textContent=ns[i].date+' · '+ns[i].title+'：';li.querySelector('span').textContent=ns[i].text})}
+addEventListener('hashchange',show);show();
+}
+</script>
+</body>
+</html>

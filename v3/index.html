@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Glorify · River V3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Courier+Prime&family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,500;0,6..72,600;1,6..72,400&display=swap" rel="stylesheet">
+<style>
+/* VOICE: 安静、私密、意识流；像一本被慢慢翻开的手绘笔记，不是童书
+   IDEA: 一条画在纸上的河：蜡笔色块、彩铅线条、零散的记号，像记忆本身一样不完整
+   PICTURE: 纵向长卷，雾蓝与灰青的蜡笔河道穿过拼贴般的色块；石头是手画的粉彩卵石，带一点错位的铅笔轮廓
+   COLOUR and TYPE: 奶油纸、灰蓝、鼠尾草绿、淡粉、奶黄，偶尔一笔深红；场景内文字用打字机体，界面沿用 V1
+   LAYOUT: 中间是可交互的手机原型，侧边是状态切换与实现说明 */
+:root{--paper:#F8F5EF;--ink:#110C0B;--mute:#77736B;
+  --serif:"Tiempos Fine VF","Tiempos Fine","Tiempos Text",Newsreader,Georgia,serif;
+  --sans:"Helvetica Now Display","Helvetica Neue",Helvetica,Arial,"PingFang SC","Noto Sans SC",sans-serif;color-scheme:light}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:#E9E7E1;color:#2B2925;font:15px/1.6 var(--sans);overflow-x:clip}
+.wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,auto) minmax(0,1fr);gap:40px;align-items:start;max-width:1440px;margin:0 auto;padding:28px max(3vw,16px)}
+.brand{font:600 26px/1 var(--serif);color:#2B2925}.brand span{font:14px var(--sans);color:#8A867E;margin-left:10px}
+.stage{position:relative}
+.phone{position:relative;width:414px;height:868px;border-radius:62px;background:#1c1c1e;padding:12px;transform-origin:top left;box-shadow:0 40px 80px -30px rgba(60,60,50,.35)}
+.screen{position:relative;width:390px;height:844px;border-radius:50px;overflow:hidden;background:#EFEBDD;color:var(--ink);touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;outline:none}
+.screen.drag{cursor:grabbing}
+#cv{position:absolute;left:0;top:0;width:390px;height:700px}
+.fade-t{position:absolute;left:0;right:0;top:0;height:176px;background:linear-gradient(var(--paper) 51%,rgba(248,245,239,0));pointer-events:none;z-index:3;opacity:0;transition:opacity .4s ease}
+.screen.topfade .fade-t{opacity:1}.blur-top{transition:opacity .4s ease}.screen.topfade .blur-top{opacity:0}
+.island{position:absolute;top:14px;left:50%;width:82px;height:36px;margin-left:-41px;border-radius:18px;background:#000;z-index:10;pointer-events:none}
+.island i{position:absolute;right:11px;top:11px;width:14px;height:14px;border-radius:50%;background:radial-gradient(circle at 40% 40%,#1d2433 0,#0b0d12 55%,#000 70%)}
+.blur-top{position:absolute;left:0;right:0;top:0;height:190px;z-index:3;pointer-events:none}
+.blur-top i{position:absolute;inset:0;-webkit-backdrop-filter:blur(var(--b));backdrop-filter:blur(var(--b));-webkit-mask-image:linear-gradient(to bottom,#000 var(--s),transparent var(--e));mask-image:linear-gradient(to bottom,#000 var(--s),transparent var(--e))}
+.blur-top b{position:absolute;inset:0;background:linear-gradient(rgba(248,245,239,.55),rgba(248,245,239,.18) 55%,rgba(248,245,239,0))}
+.fade-b{position:absolute;left:0;right:0;top:450px;bottom:0;background:linear-gradient(rgba(248,245,239,0),rgba(248,245,239,.84) 30%,var(--paper) 38%);pointer-events:none}
+.sb{position:absolute;top:0;left:0;right:0;height:54px;display:flex;justify-content:space-between;align-items:center;padding:16px 32px 0 46px;font:600 17px/1 -apple-system,"Helvetica Neue",Arial,sans-serif;z-index:5}
+.hint{position:absolute;top:536px;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:14px;background:rgba(248,245,239,.6);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);font:11.5px "Helvetica Neue",Arial,sans-serif;color:#7E7A72;z-index:4;pointer-events:none;transition:opacity .4s;white-space:nowrap}
+.screen.focus .hint{opacity:0}
+.tab{position:absolute;left:18px;right:18px;top:754px;height:62px;border-radius:32px;background:#fff;display:flex;justify-content:space-around;align-items:center;z-index:6}
+.tab span{width:62px;height:50px;border-radius:26px;display:grid;place-items:center}
+.tab span.on{background:#EFEFEF}
+.home{position:absolute;bottom:8px;left:50%;width:134px;height:5px;margin-left:-67px;border-radius:3px;background:#111;z-index:9}
+.panel{max-width:360px;justify-self:start;padding-top:6px}
+.panel h2{font:500 30px/1.1 var(--serif);margin:0 0 10px}
+.panel p{margin:0 0 14px;color:#57534C}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 18px}
+.chips button{min-height:40px;padding:0 14px;border-radius:20px;border:1px solid #D9D5CC;background:#fff;color:#2B2925;font:inherit;font-size:13.5px;cursor:pointer}
+.chips button:focus-visible,.cta:focus-visible,.sheet .back:focus-visible{outline:2px solid #8FA7C4;outline-offset:2px}
+.chips button.on{background:#2B2925;color:#fff;border-color:#2B2925}
+.panel h4{font:600 13px var(--sans);margin:18px 0 6px;color:#2B2925}
+.panel ul{margin:0;padding-left:1.1em;color:#57534C;font-size:13.5px}.panel li{margin:3px 0}
+.sw{display:flex;gap:6px;margin:6px 0 4px}.sw i{width:26px;height:26px;border-radius:50%}
+.note{font-size:12.5px;color:#8A867E}
+@media(max-width:1100px){.wrap{grid-template-columns:minmax(0,1fr)}.brand{display:none}.panel{max-width:560px;justify-self:center}.stage{justify-self:center}}
+
+/* ---- UI v2: header (Photos-style month), card motion, DS bottom sheets ---- */
+.hd{position:absolute;top:62px;left:28px;right:22px;display:flex;justify-content:space-between;align-items:flex-start;z-index:5}
+.hd h1{margin:0;font:600 34px/1 var(--serif);letter-spacing:-.02em}
+.mon{position:relative;height:18px;margin-top:7px;overflow:hidden;font:500 13.5px/18px "Helvetica Neue",Arial,sans-serif;color:#5F5A53;letter-spacing:.01em;min-width:160px}
+.mon span{position:absolute;left:0;top:0;white-space:nowrap;transition:transform .5s cubic-bezier(.2,.7,.2,1),opacity .35s ease}
+.mon span.in{transform:translateY(90%);opacity:0}.mon span.out{transform:translateY(-90%);opacity:0}
+.cbtn{width:36px;height:36px;flex:none;border-radius:50px;border:0;padding:0;background:rgba(255,255,255,.6);box-shadow:0 4px 10px rgba(0,0,0,.05);display:grid;place-items:center;cursor:pointer;-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
+.cbtn:focus-visible,.dc:focus-visible,.mnav:focus-visible{outline:2px solid #6C8FE0;outline-offset:2px}
+.hint{opacity:0}.hint.show{opacity:1}.screen.focus .hint.show{opacity:0}
+.card{position:absolute;top:594px;left:28px;right:28px;z-index:4}
+.card .it{transition:opacity .34s ease,transform .52s cubic-bezier(.2,.7,.2,1),filter .34s ease}
+.card .it:nth-child(2){transition-delay:.035s}.card .it:nth-child(3){transition-delay:.07s}.card .it:nth-child(4){transition-delay:.105s}
+.card.out .it{opacity:0;transform:translateY(-6px);filter:blur(2px);transition-duration:.15s;transition-delay:0s}
+.card.pre .it{opacity:0;transform:translateY(10px);filter:blur(3px);transition:none}
+.ebrow{display:flex;align-items:center;gap:10px;margin:0 0 10px;min-height:20px}
+.eb{margin:0;font:500 12px/16px "Helvetica Neue",Arial,sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#6F6A62}
+.mood{display:inline-flex;align-items:center;padding:4px 8px;border-radius:4px;font:400 10px/16px "Helvetica Now Display","Helvetica Neue",Helvetica,Arial,sans-serif;text-transform:capitalize;white-space:nowrap}
+.mood.lg{padding:8px 10px;border-radius:8px;font-size:12px;line-height:normal;letter-spacing:.12px}
+.mood[hidden]{display:none}
+.card h2{margin:0;font:400 24px/1.22 var(--serif);letter-spacing:-.01em;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card p.sub{margin:6px 0 0;font-size:14px;color:#6A665F;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.cta{display:flex;justify-content:space-between;align-items:center;margin-top:14px;font-size:15px;color:#4E5E55;background:none;border:0;padding:6px 0;width:100%;font-family:inherit;cursor:pointer}
+.cta[hidden]{display:none}
+.scrim{position:absolute;inset:0;background:rgba(17,12,11,.22);opacity:0;pointer-events:none;transition:opacity .42s ease;z-index:7}
+.scrim.on{opacity:1;pointer-events:auto}
+.sheet{position:absolute;left:0;right:0;bottom:0;top:auto;padding:0;background:#F8F5EF;border-radius:24px 24px 0 0;z-index:8;transform:translateY(102%);transition:transform .56s cubic-bezier(.32,.72,0,1);box-shadow:0 -10px 30px rgba(17,12,11,.08);display:flex;flex-direction:column;overflow:hidden;cursor:auto}
+.sheet.r70{height:603px}.sheet.r50{height:418px}
+.sheet.open{transform:none}
+.sh-top{flex:none;display:flex;align-items:center;justify-content:space-between;padding:16px 14px 8px;touch-action:none;cursor:grab}
+.sh-title{flex:1;min-width:0;display:flex;align-items:center;justify-content:center;gap:6px;font:400 16px/28px var(--serif);color:#110C0B;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 8px 0 6px}
+.sh-body{flex:1;overflow:auto;padding:14px 28px 48px;overscroll-behavior:contain}
+.sh-body .eb{margin:0}.sh-body .ebrow{margin:0 0 14px;min-height:31px}
+.sheet h3{font:400 28px/1.15 var(--serif);margin:4px 0 6px}
+.sheet .q{font:400 20px/1.45 var(--serif);color:#2B2925;white-space:pre-line;margin:18px 0}
+.sheet .more{border-top:1px solid #E6E1D8;padding-top:14px;font-size:14px;color:#6A665F}
+.mnav{width:28px;height:28px;border:0;background:none;border-radius:14px;font:18px/1 var(--serif);color:#5F5A53;cursor:pointer;display:grid;place-items:center}
+.mnav:disabled{opacity:.25;cursor:default}
+.calgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));row-gap:2px;padding:6px 18px 28px}
+.wd{font:500 11px "Helvetica Neue",Arial,sans-serif;color:#8A857D;text-align:center;padding:4px 0 8px;letter-spacing:.06em}
+.dc{height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;border:0;background:none;font:15px "Helvetica Neue",Arial,sans-serif;color:#110C0B;cursor:pointer;padding:0;border-radius:12px}
+.dc span{width:32px;height:32px;display:grid;place-items:center;border-radius:50%;transition:background .25s,color .25s}
+.dc i{width:5px;height:5px;border-radius:50%;background:var(--dot,#8E9BDB)}
+.dc.quiet i{background:none;box-shadow:inset 0 0 0 1px #B9B4AA}
+.dc.none i{visibility:hidden}
+.dc.off{color:#CBC6BC;cursor:default}.dc.off i{visibility:hidden}
+.dc.today span{box-shadow:inset 0 0 0 1px #110C0B}
+.dc.sel span{background:#110C0B;color:#fff}
+.toast{position:absolute;left:50%;top:58px;transform:translate(-50%,-8px);background:rgba(17,12,11,.88);color:#fff;padding:10px 14px;border-radius:14px;font:13px/1.35 "Helvetica Neue",Arial,sans-serif;opacity:0;transition:opacity .3s,transform .45s cubic-bezier(.2,.7,.2,1);z-index:9;pointer-events:none;max-width:330px;text-align:center}
+.toast.on{opacity:1;transform:translate(-50%,0)}
+.tab span{transition:background .35s}
+
+/* ---- iPhone 18 Pro hardware + iOS 26 chrome ---- */
+.phone{width:414px;height:868px;padding:12px;border-radius:66px;background:linear-gradient(145deg,#3a3a3e,#141416 30%,#0b0b0c 70%,#2c2c30);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.14),inset 0 0 0 2.5px #050506,0 0 0 1px #6b6b70,0 0 0 2px #2a2a2d,0 50px 90px -40px rgba(30,30,60,.45),0 18px 30px -18px rgba(0,0,0,.35)}
+.phone::before,.phone::after{content:"";position:absolute;width:3px;border-radius:2px;background:linear-gradient(90deg,#55555a,#2b2b2e)}
+.phone::before{left:-3px;top:142px;height:30px;box-shadow:0 66px 0 #3a3a3e,0 66px 0 0 #3a3a3e,0 130px 0 #3a3a3e}
+.phone::after{right:-3px;top:206px;height:96px}
+.phone>.vol{position:absolute;left:-3px;width:3px;border-radius:2px;background:linear-gradient(90deg,#55555a,#2b2b2e)}
+.screen{border-radius:54px;clip-path:inset(0 round 54px);isolation:isolate}
+.sb{position:absolute;top:0;left:0;right:0;height:58px;padding:0 30px 0 0;display:flex;align-items:center;justify-content:space-between;z-index:11;pointer-events:none;font:600 17px/1 "SF Pro Text",-apple-system,BlinkMacSystemFont,"Helvetica Neue",Arial,sans-serif;letter-spacing:-.4px;color:#000}
+.sb .tm{width:150px;text-align:center;padding-left:6px;font-feature-settings:"tnum"}
+.sb .si{display:flex;align-items:center;gap:6px}.sb .si svg{display:block}.sb .si svg:first-child{margin-right:1px}
+.island{top:11px;width:86px;height:37px;margin-left:-43px;border-radius:19px;background:#000;box-shadow:0 0 0 .5px rgba(0,0,0,.6)}
+.island i{right:12px;top:12.5px;width:12px;height:12px;background:radial-gradient(circle at 38% 36%,#1b2130 0,#0a0c11 45%,#000 70%);opacity:.85}
+.home{bottom:8px;width:139px;height:5px;margin-left:-69.5px;border-radius:3px;background:#000;opacity:.92}
+/* Liquid Glass: tab bar */
+.tab{left:21px;right:21px;top:748px;height:64px;border-radius:32px;background:rgba(255,255,255,.24);
+  -webkit-backdrop-filter:blur(14px) saturate(190%) brightness(1.04);backdrop-filter:blur(14px) saturate(190%) brightness(1.04);
+  box-shadow:inset 0 0 0 .6px rgba(255,255,255,.75),inset 0 1.2px 1px rgba(255,255,255,.95),inset 0 -1px 1px rgba(255,255,255,.4),inset 0 0 22px rgba(255,255,255,.28),0 10px 30px rgba(20,16,12,.11),0 1px 3px rgba(20,16,12,.08);
+  padding:0 4px;justify-content:space-between;overflow:hidden}
+.tab::before{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(180deg,rgba(255,255,255,.55),rgba(255,255,255,.08) 42%,rgba(255,255,255,0) 60%,rgba(255,255,255,.18));mix-blend-mode:screen}
+.tab span{position:relative;width:66px;height:56px;border-radius:28px;display:grid;place-items:center;transition:background .35s,box-shadow .35s}
+.tab span svg path{fill:#57524C}
+.tab span.on{background:rgba(255,255,255,.5);box-shadow:inset 0 0 0 .6px rgba(255,255,255,.9),inset 0 1px 1px #fff,inset 0 -1px 2px rgba(0,0,0,.04),0 2px 8px rgba(20,16,12,.08)}
+.tab span.on svg path{fill:#110C0B}
+/* Liquid Glass: circular buttons */
+.cbtn{width:44px;height:44px;background:rgba(255,255,255,.26);-webkit-backdrop-filter:blur(12px) saturate(190%);backdrop-filter:blur(12px) saturate(190%);
+  box-shadow:inset 0 0 0 .6px rgba(255,255,255,.8),inset 0 1.2px 1px rgba(255,255,255,.95),inset 0 -1px 1px rgba(255,255,255,.35),inset 0 0 14px rgba(255,255,255,.3),0 6px 18px rgba(20,16,12,.10),0 1px 2px rgba(20,16,12,.06)}
+.cbtn:active{transform:scale(.94)}.cbtn{transition:transform .2s}
+.hd{top:66px}
+
+/* ---- full-screen mode on phones: the River screen fills the device, no mock frame ---- */
+body.full{background:#F8F5EF;overflow:hidden;height:100dvh;overscroll-behavior:none}
+body.full .wrap{display:block;padding:0;max-width:none}
+body.full .brand,body.full .panel{display:none}
+body.full .stage{position:fixed;inset:0;width:auto!important;height:auto!important;justify-self:stretch;align-self:stretch}
+body.full .phone{position:absolute;inset:0;width:auto;height:auto;padding:0;border-radius:0;background:none;box-shadow:none;transform:none!important}
+body.full .phone::before,body.full .phone::after{display:none}
+body.full .screen{position:absolute;left:0;top:0;transform-origin:0 0;border-radius:0;clip-path:none;width:390px}
+body.full .sb,body.full .island,body.full .home{display:none}
+body.full .hd{top:16px}
+body.full .tab{top:auto;bottom:20px}
+body.full .card{top:auto;bottom:108px}
+body.full .hint{top:auto;bottom:262px}
+body.full .fade-b{top:auto;bottom:0;height:410px}
+body.full .toast{top:14px}
+body.full #cv{transform:translateY(var(--sdy,0px))}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="brand">Glorify<span>River · V3 Hand-drawn study</span></div>
+  <div class="stage" id="stage">
+    <div class="phone" id="phone">
+      <div class="screen" id="screen" tabindex="0" aria-label="River V3：上下拖动沿河回看，点击石头查看当天">
+        <canvas id="cv" width="390" height="700"></canvas>
+        <div class="fade-t" aria-hidden="true"></div><div class="blur-top" aria-hidden="true"><i style="--b:1px;--s:60%;--e:100%"></i><i style="--b:2px;--s:45%;--e:85%"></i><i style="--b:4px;--s:30%;--e:70%"></i><i style="--b:8px;--s:15%;--e:55%"></i><i style="--b:16px;--s:0%;--e:40%"></i><b></b></div><div class="fade-b"></div>
+        <div class="island" aria-hidden="true"><i></i></div><div class="sb"><span class="tm">9:41</span><span class="si"><svg width="19.2" height="12.23" viewBox="0 0 19.2 12.2264" aria-hidden="true"><path d="M19.2 1.14623C19.2 0.513183 18.7224 0 18.1333 0H17.0667C16.4776 0 16 0.513183 16 1.14623V11.0802C16 11.7132 16.4776 12.2264 17.0667 12.2264H18.1333C18.7224 12.2264 19.2 11.7132 19.2 11.0802V1.14623ZM11.7659 2.44528H12.8326C13.4217 2.44528 13.8992 2.97078 13.8992 3.61902V11.0527C13.8992 11.7009 13.4217 12.2264 12.8326 12.2264H11.7659C11.1768 12.2264 10.6992 11.7009 10.6992 11.0527V3.61902C10.6992 2.97078 11.1768 2.44528 11.7659 2.44528ZM7.43411 5.09433H6.36745C5.77834 5.09433 5.30078 5.62652 5.30078 6.28301V11.0377C5.30078 11.6942 5.77834 12.2264 6.36745 12.2264H7.43411C8.02322 12.2264 8.50078 11.6942 8.50078 11.0377V6.28301C8.50078 5.62652 8.02322 5.09433 7.43411 5.09433ZM2.13333 7.53962H1.06667C0.477563 7.53962 0 8.06421 0 8.71132V11.0547C0 11.7018 0.477563 12.2264 1.06667 12.2264H2.13333C2.72244 12.2264 3.2 11.7018 3.2 11.0547V8.71132C3.2 8.06421 2.72244 7.53962 2.13333 7.53962Z" fill-rule="evenodd" fill="#000"/></svg><svg width="17.14" height="12.33" viewBox="0 0 17.1417 12.3283" aria-hidden="true"><path d="M8.5713 2.46628C11.0584 2.46639 13.4504 3.38847 15.2529 5.04195C15.3887 5.1696 15.6056 5.16799 15.7393 5.03834L17.0368 3.77487C17.1045 3.70911 17.1422 3.62004 17.1417 3.52735C17.1411 3.43467 17.1023 3.34603 17.0338 3.28104C12.3028 -1.09368 4.83907 -1.09368 0.108056 3.28104C0.039524 3.34598 0.000639766 3.4346 7.82398e-06 3.52728C-0.000624118 3.61996 0.0370483 3.70906 0.104689 3.77487L1.40255 5.03834C1.53615 5.16819 1.75327 5.1698 1.88893 5.04195C3.69167 3.38836 6.08395 2.46628 8.5713 2.46628ZM8.56795 6.68656C9.92527 6.68647 11.2341 7.19821 12.2403 8.12234C12.3763 8.2535 12.5907 8.25065 12.7234 8.11593L14.0106 6.79663C14.0784 6.72742 14.1161 6.63355 14.1151 6.53599C14.1141 6.43844 14.0746 6.34536 14.0054 6.27757C10.9416 3.38672 6.19688 3.38672 3.13305 6.27757C3.06384 6.34536 3.02435 6.43849 3.02345 6.53607C3.02254 6.63365 3.06028 6.72752 3.12822 6.79663L4.41513 8.11593C4.54778 8.25065 4.76215 8.2535 4.89823 8.12234C5.90368 7.19882 7.21152 6.68713 8.56795 6.68656ZM11.0924 9.48011C11.0943 9.58546 11.0572 9.68703 10.9899 9.76084L8.81327 12.2156C8.74946 12.2877 8.66247 12.3283 8.5717 12.3283C8.48093 12.3283 8.39394 12.2877 8.33013 12.2156L6.1531 9.76084C6.08585 9.68697 6.04886 9.58537 6.05085 9.48002C6.05284 9.37467 6.09365 9.27491 6.16364 9.20429C7.55374 7.8904 9.58966 7.8904 10.9798 9.20429C11.0497 9.27497 11.0904 9.37476 11.0924 9.48011Z" fill-rule="evenodd" fill="#000"/></svg><svg width="27.3" height="13" viewBox="0 0 27.3 13" aria-hidden="true"><rect x=".5" y=".5" width="24" height="12" rx="3.8" fill="none" stroke="#000" stroke-opacity=".35"/><rect x="2" y="2" width="21" height="9" rx="2.5" fill="#000"/><path d="M26 4.5v4c.8-.34 1.33-1.15 1.33-2s-.53-1.66-1.33-2z" fill="#000" fill-opacity=".4"/></svg></span></div>
+        <div class="hd"><div><h1>River</h1><div class="mon" id="mon" aria-live="polite"><span>October 2026</span></div></div><button class="cbtn" id="calBtn" aria-label="Open calendar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#110C0B" stroke-width="1.7"><rect x="3.5" y="5" width="17" height="15.5" rx="3"/><path d="M3.5 9.5h17M8 3v4M16 3v4"/><g fill="#110C0B" stroke="none"><circle cx="8.5" cy="13" r="1"/><circle cx="12" cy="13" r="1"/><circle cx="15.5" cy="13" r="1"/><circle cx="8.5" cy="16.5" r="1"/><circle cx="12" cy="16.5" r="1"/></g></svg></button></div>
+        <div class="hint" id="hint"><span aria-hidden="true">↓</span>Drag down for earlier days</div>
+        <div class="card" id="card"><div class="ebrow it"><p class="eb" id="eb"></p><span class="mood" id="mood" hidden></span></div><h2 class="it" id="ct"></h2><p class="sub it" id="cs"></p><button class="cta it" id="cta"><span id="cc"></span><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#4E5E55" stroke-width="1.6"><path d="M4 12h15M13 6l6 6-6 6"/></svg></button></div>
+        <div class="scrim" id="scrim"></div>
+        <div class="sheet r70" id="sheet" role="dialog" aria-label="Journal entry"><div class="sh-top"><button class="cbtn" id="back" aria-label="Close"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#110C0B" stroke-width="1.6" stroke-linecap="round"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg></button><div class="sh-title" id="shTitle"></div><button class="cbtn" aria-label="More"><svg width="20" height="20" viewBox="0 0 20 20" fill="#110C0B"><circle cx="5" cy="10" r="1.5"/><circle cx="10" cy="10" r="1.5"/><circle cx="15" cy="10" r="1.5"/></svg></button></div><div class="sh-body"><div class="ebrow"><p class="eb" id="seb"></p><span class="mood lg" id="smood" hidden></span></div><h3 id="sh"></h3><div class="q" id="sq"></div><div class="more" id="sm"></div></div></div>
+        <div class="sheet r50" id="cal" role="dialog" aria-label="Choose date"><div class="sh-top"><button class="cbtn" id="calClose" aria-label="Close"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#110C0B" stroke-width="1.6" stroke-linecap="round"><path d="M5.5 5.5l9 9M14.5 5.5l-9 9"/></svg></button><div class="sh-title"><button class="mnav" id="mPrev" aria-label="Previous month">‹</button><span id="calTitle">October 2026</span><button class="mnav" id="mNext" aria-label="Next month">›</button></div><button class="cbtn" id="calToday" aria-label="Go to Today"><svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="#110C0B" stroke-width="1.5"><circle cx="10" cy="10" r="6.5"/><circle cx="10" cy="10" r="2" fill="#110C0B" stroke="none"/></svg></button></div><div class="calgrid" id="calGrid"></div></div>
+        <div class="toast" id="toast" role="status"></div>
+        <div class="tab"><span><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M9.6709 3.11702C11.0415 2.05433 12.9586 2.0541 14.3291 3.11702L20.5312 7.92757C21.459 8.6473 22.0019 9.75629 22.002 10.9305V18.8797C22.0017 20.978 20.3005 22.6793 18.2021 22.6795H15C14.4479 22.6794 14.0001 22.2316 14 21.6795V17.6571C13.9997 17.1052 13.5519 16.6573 13 16.6571H11C10.4481 16.6573 10.0003 17.1052 10 17.6571V21.6795C10.0001 22.2319 9.55236 22.6795 9 22.6795H5.79785C3.69936 22.6795 1.99827 20.9782 1.99805 18.8797V10.9305C1.99814 9.75634 2.54108 8.6473 3.46875 7.92757L9.6709 3.11702Z"/></svg></span><span><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 1.99902C12.5523 1.99902 13 2.44674 13 2.99902V20.999C13 21.5513 12.5523 21.999 12 21.999C11.4477 21.999 11 21.5513 11 20.999V2.99902C11 2.44674 11.4477 1.99902 12 1.99902ZM17 5C17.5523 5 18 5.44772 18 6V18C18 18.5523 17.5523 19 17 19C16.4477 19 16 18.5523 16 18V6C16 5.44772 16.4477 5 17 5ZM7 4.99902C7.55228 4.99902 8 5.44674 8 5.99902V17.999C8 18.5513 7.55228 18.999 7 18.999C6.44772 18.999 6 18.5513 6 17.999V5.99902C6 5.44674 6.44772 4.99902 7 4.99902ZM2 8.99902C2.55228 8.99902 3 9.44674 3 9.99902V14.999C3 15.5513 2.55228 15.999 2 15.999C1.44772 15.999 1 15.5513 1 14.999V9.99902C1 9.44674 1.44772 8.99902 2 8.99902ZM22 8.99902C22.5523 8.99902 23 9.44674 23 9.99902V14.999C23 15.5513 22.5523 15.999 22 15.999C21.4477 15.999 21 15.5513 21 14.999V9.99902C21 9.44674 21.4477 8.99902 22 8.99902Z"/></svg></span><span><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M8.75855 12.4004C11.5489 12.4005 14.0854 13.4106 15.9714 15.0576C17.4955 16.3893 17.014 18.7402 15.1355 19.4941C13.2368 20.2561 10.9625 20.6992 8.51832 20.6992C6.26274 20.6992 4.15097 20.3221 2.34644 19.665C0.424318 18.9647 -0.149826 16.605 1.35816 15.2227C3.26238 13.4779 5.87554 12.4005 8.75855 12.4004ZM16.7537 12.4688C19.0723 12.4689 21.1812 13.3076 22.7488 14.6758C24.0157 15.7825 23.6156 17.7371 22.0545 18.3643C20.5014 18.9879 18.6452 19.3536 16.6502 19.3652C17.9346 18.048 18.0354 15.8631 16.4646 14.4912C15.7363 13.8554 14.9172 13.3108 14.03 12.8721C14.8872 12.6115 15.803 12.4688 16.7537 12.4688ZM16.5857 5.07031C18.2677 5.07075 19.6314 6.43416 19.6316 8.11621C19.6314 9.7983 18.2677 11.1626 16.5857 11.1631C14.9036 11.1627 13.539 9.79836 13.5388 8.11621C13.539 6.43411 14.9036 5.07067 16.5857 5.07031ZM8.5564 3.5C10.5805 3.50004 12.2214 5.14093 12.2214 7.16504C12.2212 9.18891 10.5803 10.83 8.5564 10.8301C6.53268 10.8298 4.89164 9.18876 4.89136 7.16504C4.89136 5.14108 6.53251 3.50027 8.5564 3.5Z"/></svg></span><span><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M16.5 2C18.709 2.00013 20.5 3.79094 20.5 6V18C20.4992 20.2084 18.7085 21.9999 16.5 22H7.5C5.29146 21.9999 3.50079 20.2084 3.5 18V6C3.5 3.79094 5.29097 2.00013 7.5 2H16.5ZM18.5 16C17.9691 16.505 17.269 16.8154 16.5 16.8154H7.0918C6.21264 16.8156 5.5 17.529 5.5 18.4082C5.50097 19.2866 6.21324 19.9998 7.0918 20H16.5C17.604 19.9999 18.4992 19.1038 18.5 18V16Z"/></svg></span><span class="on"><svg width="26" height="26" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.81332 15.6086C7.53267 14.2721 10.7851 14.6674 13.1043 16.6174C14.799 18.0418 17.1711 18.3449 19.1688 17.3908L20.5809 16.716C21.0791 16.4785 21.676 16.6895 21.9139 17.1877C22.1511 17.6858 21.9401 18.2828 21.4422 18.5207L20.0301 19.1955C17.3245 20.4875 14.1124 20.0778 11.8172 18.1486C10.1049 16.7088 7.70297 16.4167 5.69515 17.4035L3.43148 18.5158C2.93615 18.7593 2.33653 18.5547 2.09261 18.0598C1.84901 17.5642 2.05312 16.9646 2.54867 16.7209L4.81332 15.6086ZM4.81234 10.2297C7.53169 8.89307 10.7841 9.28849 13.1034 11.2385C14.7979 12.6631 17.17 12.9658 19.1678 12.0119L20.5799 11.3371C21.0782 11.0994 21.675 11.3105 21.9129 11.8088C22.1506 12.307 21.9394 12.9038 21.4412 13.1418L20.0291 13.8166C17.3234 15.1084 14.1113 14.6991 11.8162 12.7697C10.1038 11.33 7.70199 11.0377 5.69417 12.0246L3.4305 13.1369C2.9351 13.3801 2.33531 13.176 2.09164 12.6809C1.84812 12.1854 2.05251 11.5858 2.54769 11.342L4.81234 10.2297ZM4.81332 4.85077C7.53266 3.51429 10.7851 3.90956 13.1043 5.85956C14.799 7.28425 17.1709 7.58715 19.1688 6.633L20.5809 5.95819C21.0791 5.72068 21.676 5.93172 21.9139 6.42987C22.1515 6.92806 21.9402 7.52486 21.4422 7.76288L20.0301 8.43769C17.3243 9.72978 14.1124 9.32026 11.8172 7.39081C10.1049 5.95104 7.70296 5.65894 5.69515 6.64569L3.43148 7.758C2.93597 8.00155 2.33637 7.79728 2.09261 7.30194C1.84901 6.80634 2.05312 6.20674 2.54867 5.96308L4.81332 4.85077Z"/></svg></span></div>
+        <div class="home"></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel">
+    <h2>River V3 · 纸上的河</h2>
+    <p>一条画在纸上的河。蜡笔的色块像拼贴一样铺在两岸，彩铅线条时有时无，零散的星星、小草和点点像随手记下的念头。不讲完整的风景，只留下记忆的质地。</p>
+    <div class="chips" id="chips">
+      <button data-go="2026-10-18">Oct 18 · 日记</button>
+      <button data-go="2026-10-16">Oct 16 · 社区</button>
+      <button data-go="2026-10-15">Oct 15 · 安静的一天</button>
+      <button data-go="2026-10-14">Oct 14 · 录音</button>
+      <button data-go="2026-10-19">Today · 生成中</button>
+      <button data-go="2026-09-26">Sep 26 · 最早</button>
+      <button id="amb" class="on">环境动态</button>
+      <button id="topBlur" class="on">顶部 · 模糊延伸</button>
+      <button id="topFade">顶部 · 纸色渐隐</button>
+      <button id="hintReset">重新显示滑动提示</button>
+    </div>
+    <div class="sw" aria-hidden="true"><i style="background:#EFEBDD;border:1px solid #DDD8CE"></i><i style="background:#8FA7C4"></i><i style="background:#9CC0BE"></i><i style="background:#8E98AB"></i><i style="background:#AEBBA2"></i><i style="background:#E7C3C8"></i><i style="background:#F1E3A0"></i><i style="background:#9B3A32"></i></div>
+    <h4>画面怎么读</h4>
+    <ul><li>点石头：画面约 0.7 秒平滑推近那颗石头，其他日期淡出；拖动河面回到浏览</li><li>每一天是一颗手画的粉彩卵石，选中的那颗旁边会出现一笔铅笔小星</li><li>安静的日子没有石头，只在水面留一个铅笔点</li><li>今天是一团还没定形的粉绿色光晕，外面围着一圈小点</li></ul>
+    <h4>实现方式（可落地）</h4>
+    <ul><li>整条河先在离屏画布上一次画好（蜡笔排线、纸张颗粒、铅笔线），滚动时只平移；正式版可换成插画师手绘的可拼接河段</li><li>石头、日期和选中记号由数据决定，叠在河的上层</li><li>只有今天的光晕和零星闪点在慢慢呼吸，其余静止，耗电很低</li></ul>
+    <p class="note">日期与原话沿用 V1 源码里的演示数据。场景里的日期用打字机字体，界面字体与 V1 相同。</p>
+  </div>
+</div>
+
+<script>
+{
+const DATA=[["2026-09-26", "Sep 26", "Saturday, September 26", "journal", "Wrote a journal entry", "8:12 PM", "I sat by the window with my tea before opening my phone. A quiet beginning was enough today.", "", ""], ["2026-09-27", "Sep 27", "Sunday, September 27", "journal", "Wrote a journal entry", "7:45 PM", "We stayed a little longer after church. I had forgotten how much a simple conversation can mean.", "", ""], ["2026-09-28", "Sep 28", "Monday, September 28", "journal", "Wrote a journal entry", "9:06 PM", "There were things I could not finish today. I wrote them down and let the evening be the evening.", "", ""], ["2026-09-29", "Sep 29", "Tuesday, September 29", "quiet", "", "", "", "", ""], ["2026-09-30", "Sep 30", "Wednesday, September 30", "journal", "Wrote a journal entry", "7:45 PM", "A friend checked in without needing a reason. I want to remember how that small kindness felt.", "", ""], ["2026-10-01", "Oct 1", "Thursday, October 1", "journal", "Wrote a journal entry", "9:06 PM", "A new month, and no grand plan tonight. Just a few honest words and the hope of beginning again.", "", ""], ["2026-10-02", "Oct 2", "Friday, October 2", "journal", "Wrote a journal entry", "8:12 PM", "I took a walk after the rain. The pavement was shining, and for a moment I slowed down enough to notice.", "", ""], ["2026-10-03", "Oct 3", "Saturday, October 3", "journal", "Wrote a journal entry", "7:45 PM", "I made dinner for someone I love. Nothing remarkable happened. I am glad we had that ordinary hour together.", "", ""], ["2026-10-04", "Oct 4", "Sunday, October 4", "journal", "Wrote a journal entry", "9:06 PM", "The words in the service stayed with me on the way home. I am still making room to sit with them.", "", ""], ["2026-10-05", "Oct 5", "Monday, October 5", "journal", "Wrote a journal entry", "8:12 PM", "Today was harder than I expected. I do not have a lesson to write down, only the truth that it was hard.", "", ""], ["2026-10-06", "Oct 6", "Tuesday, October 6", "journal", "Wrote a journal entry", "7:45 PM", "I came back to a prayer I wrote last month. I am still waiting, but it helped to see my own words again.", "", ""], ["2026-10-07", "Oct 7", "Wednesday, October 7", "journal", "Wrote a journal entry", "9:06 PM", "I called home on my lunch break. Hearing a familiar voice made the afternoon feel a little lighter.", "", ""], ["2026-10-08", "Oct 8", "Thursday, October 8", "quiet", "", "", "", "", ""], ["2026-10-09", "Oct 9", "Friday, October 9", "journal", "Wrote a journal entry", "7:45 PM", "The day was full of interruptions. One of them became a conversation I was grateful to have.", "", ""], ["2026-10-10", "Oct 10", "Saturday, October 10", "journal", "Wrote a journal entry", "9:06 PM", "I put my phone away for a while this afternoon. There was more birdsong outside than I had noticed.", "", ""], ["2026-10-11", "Oct 11", "Sunday, October 11", "journal", "Wrote a journal entry", "8:12 PM", "I almost skipped writing tonight. Then I remembered the kindness someone showed me this morning.", "", ""], ["2026-10-12", "Oct 12", "Monday, October 12", "journal", "Wrote a journal entry", "7:45 PM", "I am trying to listen without preparing my answer. I managed it once today, and I want to keep trying.", "", ""], ["2026-10-13", "Oct 13", "Tuesday, October 13", "journal", "Wrote a journal entry", "9:06 PM", "There is still a lot I cannot see clearly. Tonight I wrote down one thing I can do tomorrow.", "", ""], ["2026-10-14", "Oct 14", "Wednesday, October 14", "audio", "Recorded a moment", "8:42 PM", "", "", "You saved a voice recording in your Journal."], ["2026-10-15", "Oct 15", "Thursday, October 15", "quiet", "", "", "", "", ""], ["2026-10-16", "Oct 16", "Friday, October 16", "community", "Supported someone", "6:24 PM", "Holding you and your family in prayer tonight, Sarah. Thank you for letting us walk alongside you.", "", "You replied to a prayer request and completed your Daily Devotional."], ["2026-10-17", "Oct 17", "Saturday, October 17", "journal", "Wrote a journal entry", "7:36 PM", "I keep coming back to this little practice. A few words at the end of the day. Some days I have more to say, some days less. Tonight I’m simply thankful that I came back.", "Grateful", "You wrote in your Journal and paused for a moment with God."], ["2026-10-18", "Oct 18", "Sunday, October 18", "journal", "Wrote a journal entry", "5:18 PM", "This morning I took the long way home. The light was coming through the trees, and for once I wasn’t thinking about what came next. I just stood there for a little while.\n\nI’ve been asking for everything to become clear. Today I think I’m grateful for one small thing I could actually notice. Maybe I don’t have to see the whole path to take the next step.", "Grateful", "You noticed the morning light on your walk, wrote about gratitude, and completed your Daily Devotional."], ["2026-10-19", "Today", "Monday, October 19", "today", "", "", "", "", ""]];
+const W=390,VH=700,DAYH=132,TOP=260,FOCUSY=400;
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const rng=a=>()=>{a|=0;a=a+0x6D2B79F5|0;let t=Math.imul(a^a>>>15,1|a);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+const days=DATA.map((r,i)=>({date:r[0],short:r[1],label:r[2],kind:r[3],title:r[4],time:r[5],quote:r[6],mood:r[7],summary:r[8],i}));
+const WH=TOP+days.length*DAYH+340;
+const cxAt=y=>W/2+58*Math.sin(y*.0058+.4)+26*Math.sin(y*.0163+1.3);
+const wAt=y=>40+10*Math.sin(y*.011+2)+6*Math.sin(y*.031);
+days.forEach(d=>{const r=rng(d.i*97+11);d.y=TOP+d.i*DAYH+DAYH/2;d.x=cxAt(d.y)+(r()*2-1)*14;d.seed=d.i*31+3});
+const $=id=>document.getElementById(id);
+
+/* ---------- paint the long scroll once ---------- */
+const SC=2;const big=document.createElement('canvas');big.width=W*SC;big.height=WH*SC;const g=big.getContext('2d');g.scale(SC,SC);
+const PAL={paper:'#EFEBDD',blue:'#8FA7C4',teal:'#9CC0BE',slate:'#8E98AB',sage:'#AEBBA2',pink:'#E7C3C8',butter:'#F1E3A0',red:'#9B3A32',graph:'#4F4C47',cream:'#FBF7EC'};
+const R=rng(2026);
+/* crayon tooth texture */
+const tooth=document.createElement('canvas');tooth.width=tooth.height=160;{const c=tooth.getContext('2d');const im=c.createImageData(160,160);for(let i=0;i<im.data.length;i+=4){const v=R();im.data[i]=im.data[i+1]=im.data[i+2]=0;im.data[i+3]=v<.34?Math.floor(160+v*250):0}c.putImageData(im,0,0)}
+const toothPat=g.createPattern(tooth,'repeat');
+function roughPoly(cx,cy,rx,ry,jit,n=28,rot=0){const pts=[];const ph=R()*6;for(let i=0;i<n;i++){const a=i/n*6.2832;const k=1+jit*(Math.sin(a*3+ph)*.5+Math.sin(a*7+ph*2)*.3+(R()-.5)*.6);
+  const x=Math.cos(a)*rx*k,y=Math.sin(a)*ry*k;pts.push([cx+x*Math.cos(rot)-y*Math.sin(rot),cy+x*Math.sin(rot)+y*Math.cos(rot)])}return pts}
+function pathOf(pts){g.beginPath();pts.forEach((p,i)=>i?g.lineTo(p[0],p[1]):g.moveTo(p[0],p[1]));g.closePath()}
+function crayonFill(pts,col,alpha,dens=1,ang=-.6){
+  const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);const x0=Math.min(...xs)-10,x1=Math.max(...xs)+10,y0=Math.min(...ys)-10,y1=Math.max(...ys)+10;
+  g.save();pathOf(pts);g.clip();g.globalAlpha=alpha*.55;g.fillStyle=col;g.fillRect(x0,y0,x1-x0,y1-y0);
+  g.strokeStyle=col;g.lineCap='round';const L=Math.hypot(x1-x0,y1-y0);
+  for(let i=0;i<(x1-x0)*(y1-y0)/55*dens;i++){const x=x0+R()*(x1-x0),y=y0+R()*(y1-y0),l=6+R()*16,a=ang+(R()-.5)*.5;
+    g.globalAlpha=alpha*(.08+R()*.18);g.lineWidth=1.2+R()*2.6;g.beginPath();g.moveTo(x,y);g.lineTo(x+Math.cos(a)*l,y+Math.sin(a)*l);g.stroke()}
+  g.globalCompositeOperation='destination-out';g.globalAlpha=.55;g.fillStyle=toothPat;g.fillRect(x0,y0,x1-x0,y1-y0);g.restore();
+  g.globalCompositeOperation='source-over';g.globalAlpha=1}
+function densify(pts,step=2){const out=[];for(let i=1;i<pts.length;i++){const a=pts[i-1],b=pts[i];const L=Math.hypot(b[0]-a[0],b[1]-a[1]);const n=Math.max(1,Math.ceil(L/step));for(let k=0;k<n;k++)out.push([a[0]+(b[0]-a[0])*k/n,a[1]+(b[1]-a[1])*k/n])}out.push(pts[pts.length-1]);return out}
+/* hand pencil: smooth wobble (not random jitter), pressure that swells and fades, tapered ends, a second lighter pass, tiny gaps where the lead skips */
+function pencil(pts,col,w,alpha,jit=.8){const P0=densify(pts,1.8);const n=P0.length;if(n<2)return;const ph=R()*9,ph2=R()*9;
+  const P=P0.map((p,i)=>[p[0]+Math.sin(i*.09+ph)*jit*.9+Math.sin(i*.41+ph2)*jit*.22,p[1]+Math.cos(i*.08+ph2)*jit*.9]);
+  g.save();g.strokeStyle=col;g.lineCap='round';
+  for(let pass=0;pass<2;pass++){const ox=pass?(R()-.5)*.9:0,oy=pass?(R()-.5)*.9:0;
+    for(let i=1;i<n;i++){const t=i/(n-1);const taper=Math.pow(Math.sin(Math.PI*t)+.001,.35);const pres=.55+.45*(.5+.5*Math.sin(i*.06+ph*2));
+      if(R()<.025)continue;g.globalAlpha=alpha*(pass?.32:1)*(.72+.28*R())*(.55+.45*taper);g.lineWidth=w*(pass?.6:1)*pres*(.35+.65*taper);
+      g.beginPath();g.moveTo(P[i-1][0]+ox,P[i-1][1]+oy);g.lineTo(P[i][0]+ox,P[i][1]+oy);g.stroke()}}
+  g.restore()}
+function curve(x0,y0,x1,y1,bend,n=10){const pts=[];const mx=(x0+x1)/2+bend,my=(y0+y1)/2;for(let i=0;i<=n;i++){const s=i/n,a=(1-s)*(1-s),b=2*(1-s)*s,c=s*s;pts.push([a*x0+b*mx+c*x1,a*y0+b*my+c*y1])}return pts}
+function star(x,y,s,col,alpha){const pts=[];for(let i=0;i<=10;i++){const a=-1.5708+i*.6283,rr=i%2?s*.42:s;pts.push([x+Math.cos(a)*rr*(1+(R()-.5)*.25),y+Math.sin(a)*rr*(1+(R()-.5)*.25)])}pencil(pts,col,.9,alpha,.5)}
+function spiral(x,y,s,col,alpha){const pts=[];for(let a=0;a<12;a+=.25){const rr=s*a/12;pts.push([x+Math.cos(a)*rr,y+Math.sin(a)*rr*.8])}pencil(pts,col,.8,alpha,.4)}
+
+/* paper */
+g.fillStyle=PAL.paper;g.fillRect(0,0,W,WH);
+{const im=g.getImageData(0,0,W*SC,WH*SC);const d=im.data;for(let i=0;i<d.length;i+=4){const v=(R()-.5)*14;d[i]+=v;d[i+1]+=v;d[i+2]+=v*.9}g.putImageData(im,0,0)}
+/* collage colour fields on the banks */
+for(let y=-60;y<WH;y+=70+R()*90){const side=R()<.5?-1:1;const cy=y+R()*40,cx=cxAt(cy)+side*(110+R()*90);
+  const cols=[PAL.slate,PAL.sage,PAL.pink,PAL.butter,PAL.teal,PAL.slate,PAL.sage];const c=cols[Math.floor(R()*cols.length)];
+  const rect=R()<.45;const rx=50+R()*80,ry=40+R()*90;
+  const pts=rect?[[cx-rx,cy-ry],[cx+rx,cy-ry*(.9+R()*.2)],[cx+rx*(.95+R()*.1),cy+ry],[cx-rx*(1+R()*.08),cy+ry*(.95+R()*.1)]].map(p=>[p[0]+(R()-.5)*8,p[1]+(R()-.5)*8]):roughPoly(cx,cy,rx,ry,.12,30,(R()-.5)*.8);
+  crayonFill(pts,c,.72+R()*.25,1,-.5+(R()-.5)*.6)}
+/* the river: layered crayon band */
+for(let pass=0;pass<3;pass++){const col=[PAL.blue,PAL.teal,'#B7C9DC'][pass];
+  const left=[],right=[];for(let y=-40;y<=WH+40;y+=10){const w=wAt(y)*(1-pass*.18)+(R()-.5)*5;const x=cxAt(y)+(pass-1)*6;left.push([x-w,y]);right.unshift([x+w,y])}
+  crayonFill(left.concat(right),col,[.85,.5,.35][pass],1.2,-1.2+pass*.4)}
+/* flow lines: broken pencil strokes along the river */
+for(let k=0;k<26;k++){const y0=R()*WH,len=60+R()*160,off=(R()-.5)*1.3;const pts=[];
+  for(let y=y0;y<y0+len;y+=6){pts.push([cxAt(y)+off*wAt(y)*.8+Math.sin(y*.05)*2,y])}pencil(pts,R()<.75?'#6E8AA8':PAL.graph,.8,.35+R()*.25,.6)}
+/* bank edge: a pencil line that comes and goes */
+for(const side of[-1,1]){let y=-20;while(y<WH){const len=80+R()*220;const pts=[];for(let yy=y;yy<y+len;yy+=5)pts.push([cxAt(yy)+side*(wAt(yy)+4+R()*2),yy]);
+  if(R()<.7)pencil(pts,PAL.graph,.7,.45,.9);y+=len+40+R()*160}}
+/* little marks: grass, stars, dots */
+for(let k=0;k<70;k++){const y=R()*WH,side=R()<.5?-1:1,x=cxAt(y)+side*(wAt(y)+14+R()*120);
+  const t=R();if(t<.45){for(let j=0;j<3+R()*3;j++){const xx=x+j*3+(R()-.5)*2;pencil([[xx,y],[xx+(R()-.5)*5,y-7-R()*7]],'#D9C25A',1,.75,.3)}}
+  else if(t<.65)star(x,y,4+R()*4,PAL.graph,.5);
+  else if(t<.75)spiral(x,y,6+R()*5,PAL.graph,.35);
+  else{g.fillStyle=['#E7A5B4','#8FB6D8','#E8D36A','#9CC59A','#FFFFFF'][Math.floor(R()*5)];g.globalAlpha=.75;g.beginPath();g.ellipse(x,y,2.4,1.9,R(),0,6.3);g.fill();g.globalAlpha=1}}
+/* hand-drawn plants on the banks: willow, round tree, flower stems, low shrub */
+function willow(x,y,s){const h=(60+R()*30)*s,lean=(R()-.5)*10*s;const top=[x+lean,y-h];
+  pencil(curve(x,y,top[0],top[1],(R()-.5)*8,12),'#4F4C47',1.7*s,.85,.6);
+  const tips=[];for(let b=0;b<3;b++){const by=y-h*(.6+b*.13),dir=b%2?1:-1,bx=x+lean*(.6+b*.13);const tx=bx+dir*(10+R()*8)*s,ty=by-(6+R()*8)*s;pencil(curve(bx,by,tx,ty,dir*3,6),'#4F4C47',1.0*s,.75,.4);tips.push([tx,ty])}
+  tips.push(top);for(let k=0;k<12;k++){const st=tips[k%tips.length];const dir=R()<.5?-1:1;const len=(26+R()*30)*s;const spread=(4+R()*10)*s;const pts=[];
+    for(let i=0;i<=12;i++){const q=i/12;pts.push([st[0]+dir*Math.sin(q*1.5)*spread,st[1]+q*len])}
+    pencil(pts,R()<.5?'#A3B77F':'#BCCB98',1.05*s,.85,.35);
+    for(let l=0;l<3;l++){const q=.35+R()*.6,lx=st[0]+dir*Math.sin(q*1.5)*spread,ly=st[1]+q*len;g.fillStyle='#A9BC86';g.globalAlpha=.55;g.beginPath();g.ellipse(lx,ly,1.1*s,2.2*s,dir*.3,0,6.3);g.fill();g.globalAlpha=1}}}
+function roundTree(x,y,s){const h=(34+R()*16)*s,r=(15+R()*8)*s,cy=y-h-r*.6;
+  pencil(curve(x,y,x+(R()-.5)*4,cy+r*.4,(R()-.5)*5,8),'#5B4F45',2.4*s,.9,.5);pencil(curve(x+1,y-h*.35,x+r*.55,cy+r*.2,-3,6),'#5B4F45',1.2*s,.8,.4);
+  const pts=roughPoly(x,cy,r,r*1.05,.14,22,R());crayonFill(pts,R()<.5?'#8FA98A':'#97B8B2',1,1.8,-.7);crayonFill(roughPoly(x-r*.25,cy-r*.3,r*.5,r*.45,.15,16,0),'#C7D6B6',.6,1.4,-.7);
+  for(let k=0;k<3;k++){const sp=[];const ox=x+(R()-.5)*r*.8,oy=cy+(R()-.5)*r*.7,rr=(3+R()*4)*s;for(let a=0;a<6.3*1.6;a+=.4)sp.push([ox+Math.cos(a)*rr*(1+a*.04),oy+Math.sin(a)*rr*.8*(1+a*.04)]);pencil(sp,'#5E6F58',.9*s,.5,.3)}
+  const op=pts.slice(0,Math.floor(pts.length*(.55+R()*.3)));pencil(op,'#4F4C47',1.1*s,.6,.6)}
+function flowers(x,y,s){const n=5+Math.floor(R()*4);for(let k=0;k<n;k++){const tx=x+(R()-.5)*26*s,ty=y-(28+R()*26)*s;
+  pencil(curve(x+(R()-.5)*4,y,tx,ty,(R()-.5)*10,10),'#A3AFC2',.85*s,.85,.4);
+  g.fillStyle='#E8D46C';g.globalAlpha=.9;g.beginPath();g.ellipse(tx,ty,3.4*s,2.6*s,R(),0,6.3);g.fill();g.fillStyle='#F3E6A2';g.beginPath();g.ellipse(tx-.8,ty-.7,1.6*s,1.1*s,0,0,6.3);g.fill();g.globalAlpha=1}}
+function shrub(x,y,s){const w=(22+R()*14)*s,h=(10+R()*6)*s;const pts=[];for(let i=0;i<=30;i++){const q=i/30;pts.push([x-w/2+q*w,y-Math.abs(Math.sin(q*Math.PI*(3+Math.floor(R()*2))))*h-Math.sin(q*Math.PI)*h*.6])}
+  pencil(pts,'#7E8F6E',1.1*s,.75,.4);const fill=[[x-w/2,y]].concat(pts).concat([[x+w/2,y]]);crayonFill(fill,'#B5C3A0',.55,1.2,-.6)}
+{let y=140;let k=0;while(y<WH-80){const side=R()<.5?-1:1,s=.85+R()*.4;const x=cxAt(y)+side*(wAt(y)+38+R()*105)*1;const kind=R();
+  if(x>20&&x<W-20){if(kind<.32)willow(x,y,s);else if(kind<.58)roundTree(x,y,s);else if(kind<.82)flowers(x,y,s);else shrub(x,y,s)}
+  y+=120+R()*120;k++}}
+
+/* hand-drawn stones (painted into the scroll) */
+const STONE_COLS=['#FBF7EC','#F3E9E6','#EEF1EA','#F6EFD9','#F1E6EA'];
+days.forEach(d=>{if(d.kind==='today')return;const r=rng(d.seed);
+  if(d.kind==='quiet'){g.fillStyle=PAL.graph;g.globalAlpha=.55;g.beginPath();g.arc(d.x,d.y,1.6,0,6.3);g.fill();g.globalAlpha=1;return}
+  const rx=17+r()*6,ry=10+r()*4,rot=(r()-.5)*.5;
+  g.save();g.globalAlpha=.18;g.fillStyle='#5E7690';g.beginPath();g.ellipse(d.x+3,d.y+5,rx*1.02,ry*.8,rot,0,6.3);g.fill();g.restore();
+  const pts=roughPoly(d.x,d.y,rx,ry,.08,26,rot);g.save();pathOf(pts);g.globalAlpha=.94;g.fillStyle=STONE_COLS[d.i%STONE_COLS.length];g.fill();g.restore();crayonFill(pts,'#FFFFFF',.7,1.2,-.4);
+  g.save();pathOf(pts);g.clip();g.globalAlpha=.18;g.fillStyle='#8E98AB';g.beginPath();g.ellipse(d.x+rx*.2,d.y+ry*.75,rx,ry*.55,rot,0,6.3);g.fill();g.restore();
+  const op=roughPoly(d.x+1.5,d.y-1,rx*1.02,ry*1.03,.05,30,rot);op.push(op[0],op[1]);pencil(op,PAL.graph,.8,.55,.5)});
+
+/* ---------- view ---------- */
+const cv=$('cv'),ctx=cv.getContext('2d');let dpr=1;
+const ZF=1.55,ZR=1.8,FY_B=355,FY_F=345,FY_R=140,GX=34;
+let sel=days.length-2,clock=0,amb=!reduce,reading=false,drag=null,mode='browse',anim=null;
+let C={cx:W/2,cy:0,z:1,fy:FY_B},T={...C};
+const today=days[days.length-1];
+const clampY=v=>Math.min(today.y+10,Math.max(days[0].y-40,v));
+const ease=p=>p<.5?4*p*p*p:1-Math.pow(-2*p+2,3)/2;
+function go(to,dur=720){if(reduce)dur=1;anim={t0:performance.now(),dur,from:{...C},to:{...to}};T={...to}}
+const toScreen=(x,y)=>[(x-C.cx)*C.z+W/2,(y-C.cy)*C.z+C.fy];
+function selMark(d,t){ctx.save();ctx.strokeStyle='#4F4C47';ctx.lineWidth=.9/C.z+.2;ctx.globalAlpha=.75;
+  const sx=d.x-34,sy=d.y-16;ctx.beginPath();for(let i=0;i<=10;i++){const a=-1.5708+i*.6283+Math.sin(t*.6)*.04,rr=i%2?2.6:6.2;const x=sx+Math.cos(a)*rr,y=sy+Math.sin(a)*rr;i?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.stroke();
+  /* a loose hand-drawn loop around the chosen stone: overlapping ends, gentle wobble */
+  ctx.globalAlpha=.55;ctx.lineWidth=1.1/C.z+.25;ctx.lineCap='round';ctx.beginPath();const ph=d.seed*.7;
+  for(let k=0;k<=60;k++){const a=-2.2+k/60*6.2832*1.12;const wob=1+.05*Math.sin(a*3+ph)+.03*Math.sin(a*7+ph*2);const rx=31*wob+k*.04,ry=18*wob;const x=d.x+Math.cos(a)*rx,y=d.y+1+Math.sin(a)*ry;k?ctx.lineTo(x,y):ctx.moveTo(x,y)}ctx.stroke();
+  ctx.restore()}
+function aura(d,t){const pu=reduce?1:.88+.12*Math.sin(t*1.1);const x=d.x,y=d.y;
+  ctx.save();let gr=ctx.createRadialGradient(x,y,2,x,y,46*pu);gr.addColorStop(0,'rgba(240,160,185,.85)');gr.addColorStop(.45,'rgba(210,200,170,.55)');gr.addColorStop(1,'rgba(170,200,150,0)');
+  ctx.fillStyle=gr;ctx.beginPath();ctx.ellipse(x,y,40*pu,56*pu,0,0,6.3);ctx.fill();
+  for(let i=0;i<9;i++){const a=i/9*6.2832+t*.05;ctx.fillStyle='rgba(226,110,150,.85)';ctx.beginPath();ctx.arc(x+Math.cos(a)*44*pu,y+Math.sin(a)*60*pu,1.8,0,6.3);ctx.fill()}ctx.restore()}
+const TW=(()=>{const r=rng(9);return Array.from({length:40},(_,k)=>({x:r()*W,y:r()*WH,ph:r()*6,c:['#E7A5B4','#8FB6D8','#E8D36A','#FFFFFF'][k%4]}))})();
+let hits=[];
+function draw(){
+  ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle='#EFEBDD';ctx.fillRect(0,0,W,VH);
+  const vw=W/C.z,vh=VH/C.z;let x0=C.cx-(W/2)/C.z,y0=C.cy-C.fy/C.z;
+  const sx0=Math.max(0,x0),sy0=Math.max(0,y0),sx1=Math.min(W,x0+vw),sy1=Math.min(WH,y0+vh);
+  ctx.setTransform(dpr*C.z,0,0,dpr*C.z,dpr*(W/2-C.cx*C.z),dpr*(C.fy-C.cy*C.z));
+  if(sx1>sx0&&sy1>sy0)ctx.drawImage(big,sx0*SC,sy0*SC,(sx1-sx0)*SC,(sy1-sy0)*SC,sx0,sy0,sx1-sx0,sy1-sy0);
+  for(const p of TW){if(p.y<y0-10||p.y>y0+vh+10)continue;const a=reduce?.4:.25+.35*Math.max(0,Math.sin(clock*.4+p.ph));ctx.globalAlpha=a;ctx.fillStyle=p.c;ctx.beginPath();ctx.ellipse(p.x,p.y,2.2,1.8,p.ph,0,6.3);ctx.fill()}
+  ctx.globalAlpha=1;hits=[];
+  days.forEach(d=>{if(d.y<y0-80||d.y>y0+vh+80)return;const [px,py]=toScreen(d.x,d.y);
+    if(d.kind==='today')aura(d,clock);
+    if(d.i===sel&&d.kind!=='today'&&d.kind!=='quiet')selMark(d,clock);
+    hits.push({x:px,y:py,r:30*C.z,i:d.i});
+    const near=Math.abs(d.i-sel),on=d.i===sel;const fz=1/C.z;
+    if(py>560||py<130)return;if(!on&&(mode==='focus'||near>2))return;
+    ctx.fillStyle='#3E3B37';ctx.globalAlpha=on?.95:(near===1?.55:.35);
+    ctx.font=`${(on?13:11)*fz}px "Courier Prime", ui-monospace, monospace`;
+    const txt=(d.kind==='today'?'today':d.short.toLowerCase());const lx=d.x+(on?30:26)*Math.max(fz,.75);ctx.fillText(txt,lx,d.y+4*fz);
+    if(on){const sub=d.kind==='quiet'?'a quiet day':({journal:'journal',community:'community',audio:'a recording',today:'still gathering'}[d.kind]||'');
+      ctx.globalAlpha=.55;ctx.font=`${11*fz}px "Courier Prime", ui-monospace, monospace`;ctx.fillText(sub,lx,d.y+18*fz)}
+    ctx.globalAlpha=1});
+}
+
+/* ---------- card / sheet ---------- */
+const MON=['JANUARY','FEBRUARY','MARCH','APRIL','MAY','JUNE','JULY','AUGUST','SEPTEMBER','OCTOBER','NOVEMBER','DECEMBER'];
+/* Glorify mood tags (Figma: app design › mood tag 20695:137014) — text colour + same colour at 10% */
+const MOODC={Excited:'#ED8166',Energized:'#ED9F5E',Joyful:'#E2B956','At Ease':'#65C19C',Calm:'#2CBDD1',Content:'#1E91E5',Stressed:'#A78BCE',Worried:'#728DC3',Down:'#B0988E'};
+const MOODBG={Excited:'rgba(237,129,102,.1)',Energized:'rgba(237,159,94,.1)',Joyful:'rgba(226,185,86,.1)','At Ease':'rgba(101,193,156,.1)',Calm:'rgba(44,189,209,.1)',Content:'rgba(30,145,229,.1)',Stressed:'rgba(167,139,206,.1)',Worried:'rgba(144,163,201,.1)',Down:'rgba(176,152,142,.1)'};
+/* demo moods (fictional), mapped onto the product's mood set */
+{const M={'2026-09-26':'Calm','2026-09-27':'Joyful','2026-09-28':'At Ease','2026-09-30':'Content','2026-10-01':'Calm','2026-10-02':'At Ease','2026-10-03':'Content','2026-10-04':'Calm','2026-10-05':'Down','2026-10-06':'Worried','2026-10-07':'Content','2026-10-09':'Stressed','2026-10-10':'At Ease','2026-10-11':'Content','2026-10-12':'Calm','2026-10-13':'Worried','2026-10-17':'Content','2026-10-18':'At Ease'};days.forEach(d=>{d.mood=M[d.date]||''})}
+let cardT;function card(){const d=days[sel];let eb=d.label.toUpperCase().replace(',',' ·'),t,s='',c='',act='read';const st=typeof settle!=='undefined'?settle:0;
+  if(d.kind==='today'&&st>=1){t='Today has settled.';s='Three moments became one stone. Your River moves on.'}
+  else if(d.kind==='today'){t='Today Is Still Forming';s='Your River is gathering today’s moments. This day will settle after midnight.';c='Add a moment in Journal';act='journal'}
+  else if(d.kind==='quiet'){t='Some days are quiet.';s='Your River continues.'}
+  else if(d.kind==='audio'){eb=d.short.toUpperCase()+' · '+d.time;t='Your recording is here.';s='No transcription is available for this recording.';c='View journal entry'}
+  else{eb=(d.i===0?'YOUR FIRST MOMENT · ':'')+d.short.toUpperCase()+(d.i===0?'':' · '+d.time);t=d.i===0?'Your first moment here':d.quote;s=d.i===0?'Your first words are still here.':'';c=d.i===0?'Read your first moment':(d.kind==='community'?'View the conversation':'View journal entry')}
+  const el=$('card');el.classList.add('out');clearTimeout(cardT);setMonth(d);
+  cardT=setTimeout(()=>{$('eb').textContent=eb;$('ct').textContent=t;$('cs').textContent=s;$('cs').style.display=s?'':'none';$('cc').textContent=c;$('cta').hidden=!c;$('cta').dataset.act=act;
+    setMood($('mood'),d.mood);el.classList.remove('out');el.classList.add('pre');void el.offsetWidth;requestAnimationFrame(()=>el.classList.remove('pre'))},170);
+  document.querySelectorAll('[data-go]').forEach(b=>b.classList.toggle('on',b.dataset.go===d.date));
+}
+function setMood(el,m){if(!m||!MOODC[m]){el.hidden=true;return}el.hidden=false;el.textContent=m;el.style.background=MOODBG[m];el.style.color=MOODC[m]}
+const MONL=['January','February','March','April','May','June','July','August','September','October','November','December'];
+function setMonth(d){const txt=MONL[+d.date.slice(5,7)-1]+' '+d.date.slice(0,4);const box=$('mon');const cur=box.lastElementChild;if(cur&&cur.textContent===txt&&!cur.classList.contains('out'))return;
+  const up=!cur||txt>cur.textContent;const n=document.createElement('span');n.textContent=txt;n.className='in';n.style.transform=up?'translateY(90%)':'translateY(-90%)';box.appendChild(n);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{n.className='';n.style.transform='';if(cur){cur.className='out';cur.style.transform=up?'translateY(-90%)':'translateY(90%)';setTimeout(()=>cur.remove(),520)}}))}
+function setMode(m){mode=m;$('screen').classList.toggle('focus',m==='focus')}
+function select(i,how='focus'){sel=Math.max(0,Math.min(days.length-1,i));const d=days[sel];
+  if(how==='focus'){setMode('focus');go({cx:d.x+GX,cy:d.y,z:ZF,fy:FY_F})}else{setMode('browse');go({cx:W/2,cy:clampY(d.y),z:1,fy:FY_B},520)}card()}
+function openRead(){const d=days[sel];if(!$('cta').textContent)return;reading=true;go({cx:d.x+GX*.6,cy:d.y,z:ZR,fy:FY_R});
+  $('seb').textContent=(d.time||'').toUpperCase();$('sh').textContent=d.title||'';$('shTitle').textContent=d.label;setMood($('smood'),d.mood);
+  $('sq').textContent=d.kind==='audio'?'No transcription is available for this recording.':d.quote;
+  $('sm').textContent=d.summary?'More from this day — '+d.summary:(d.mood?'Mood · '+d.mood:'');$('screen').scrollTop=0;showSheet('sheet');requestAnimationFrame(()=>{$('back').focus({preventScroll:true});$('screen').scrollTop=0})}
+function closeRead(){reading=false;setMode('focus');const d=days[sel];go({cx:d.x+GX,cy:d.y,z:ZF,fy:FY_F});hideSheet('sheet');$('screen').focus({preventScroll:true});$('screen').scrollTop=0}
+$('cta').addEventListener('click',()=>{if($('cta').dataset.act==='journal')goJournal();else openRead()});$('back').addEventListener('click',closeRead);
+$('sheet').addEventListener('pointerdown',e=>e.stopPropagation());
+
+/* ---------- input ---------- */
+const scr=$('screen');
+const loc=e=>{const r=scr.getBoundingClientRect(),k=r.width/390;return{x:(e.clientX-r.left)/k,y:(e.clientY-r.top)/k-SDY}};
+const nearestTo=v=>{let b=0,bd=1e9;days.forEach(d=>{const x=Math.abs(d.y-v);if(x<bd){bd=x;b=d.i}});return b};
+function toBrowse(){if(mode!=='focus')return;setMode('browse');anim=null;T={cx:W/2,cy:C.cy,z:1,fy:FY_B}}
+scr.addEventListener('pointerdown',e=>{if(reading||calOpen)return;const p=loc(e);if(p.y>600||p.y<110)return;drag={y:p.y,c:T.cy,moved:false,id:e.pointerId}});
+scr.addEventListener('pointermove',e=>{if(!drag)return;const p=loc(e),dy=p.y-drag.y;if(!drag.moved&&Math.abs(dy)>6){drag.moved=true;scr.classList.add('drag');scr.setPointerCapture(drag.id)}
+  if(drag.moved){if(mode==='focus'){toBrowse();drag.c=T.cy;drag.y=p.y}else T.cy=clampY(drag.c-dy)}});
+scr.addEventListener('pointerup',e=>{if(!drag)return;scr.classList.remove('drag');
+  if(!drag.moved){const p=loc(e);let b=null,bd=1e9;for(const h of hits){const q=Math.hypot(h.x-p.x,h.y-p.y);if(q<h.r&&q<bd){bd=q;b=h}}if(b)select(b.i)}
+  else select(nearestTo(T.cy),'browse');drag=null});
+scr.addEventListener('pointercancel',()=>{drag=null;scr.classList.remove('drag')});
+let wt;scr.addEventListener('wheel',e=>{if(reading||calOpen){return}e.preventDefault();toBrowse();T.cy=clampY(T.cy+e.deltaY*.8);clearTimeout(wt);wt=setTimeout(()=>select(nearestTo(T.cy),'browse'),220)},{passive:false});
+scr.addEventListener('keydown',e=>{if(e.key==='ArrowUp'){e.preventDefault();select(sel-1,'browse')}else if(e.key==='ArrowDown'){e.preventDefault();select(sel+1,'browse')}else if(e.key==='Escape'&&reading)closeRead()});
+document.querySelectorAll('[data-go]').forEach(b=>b.addEventListener('click',()=>{if(reading)closeRead();select(days.find(d=>d.date===b.dataset.go).i)}));
+$('amb').addEventListener('click',()=>{amb=!amb;$('amb').classList.toggle('on',amb)});
+
+/* ---------- sheets, calendar, hint, journal path ---------- */
+let calOpen=false,calM=9,settle=0;
+function showSheet(id){$('scrim').classList.add('on');$(id).style.transform='';$(id).classList.add('open')}
+function hideSheet(id){$(id).style.transform='';$(id).classList.remove('open');if(!document.querySelector('.sheet.open'))$('scrim').classList.remove('on')}
+document.querySelectorAll('.sheet,.scrim').forEach(el=>el.addEventListener('pointerdown',e=>e.stopPropagation()));
+document.querySelectorAll('.sheet .sh-top').forEach(top=>{const sh=top.parentElement;let sy=null,dy=0;
+  top.addEventListener('pointerdown',e=>{if(e.target.closest('button'))return;sy=e.clientY;dy=0;sh.style.transition='none';top.setPointerCapture(e.pointerId)});
+  top.addEventListener('pointermove',e=>{if(sy===null)return;const k=$('screen').getBoundingClientRect().width/390;dy=(e.clientY-sy)/k;sh.style.transform=`translateY(${dy>0?dy:dy*.15}px)`});
+  const end=()=>{if(sy===null)return;sy=null;sh.style.transition='';if(dy>110){sh.id==='cal'?closeCal():closeRead()}else sh.style.transform=''};
+  top.addEventListener('pointerup',end);top.addEventListener('pointercancel',end)});
+$('scrim').addEventListener('click',()=>{if(calOpen)closeCal();else if(reading)closeRead()});
+const byDate={};days.forEach(d=>byDate[d.date]=d);
+function buildCal(){const y=2026,m=calM;$('calTitle').textContent=MONL[m]+' '+y;$('mPrev').disabled=m<=8;$('mNext').disabled=m>=9;
+  const first=new Date(y,m,1).getDay(),n=new Date(y,m+1,0).getDate();let h=['S','M','T','W','T','F','S'].map(w=>`<div class="wd">${w}</div>`).join('');
+  for(let i=0;i<first;i++)h+='<div></div>';
+  for(let dd=1;dd<=n;dd++){const key=`${y}-${String(m+1).padStart(2,'0')}-${String(dd).padStart(2,'0')}`,d=byDate[key];
+    const cls=['dc'];if(!d)cls.push('off');else{if(d.kind==='quiet')cls.push('quiet');if(d.kind==='today')cls.push('today','none');if(d.i===sel)cls.push('sel')}
+    h+=`<button class="${cls.join(' ')}" ${d?`data-i="${d.i}"`:'disabled'} aria-label="${MONL[m]} ${dd}"><span>${dd}</span><i></i></button>`}
+  $('calGrid').innerHTML=h;
+  $('calGrid').querySelectorAll('[data-i]').forEach(b=>b.addEventListener('click',()=>{const i=+b.dataset.i;closeCal();setTimeout(()=>select(i,'focus'),260)}))}
+function openCal(){if(reading)closeRead();calOpen=true;calM=+days[sel].date.slice(5,7)-1;buildCal();showSheet('cal');setTimeout(()=>$('calClose').focus({preventScroll:true}),60);$('screen').scrollTop=0}
+function closeCal(){calOpen=false;hideSheet('cal');$('screen').focus({preventScroll:true});$('screen').scrollTop=0}
+$('calBtn').addEventListener('click',openCal);
+const setTop=f=>{$('screen').classList.toggle('topfade',f);$('topBlur').classList.toggle('on',!f);$('topFade').classList.toggle('on',f)};$('topBlur').addEventListener('click',()=>setTop(false));$('topFade').addEventListener('click',()=>setTop(true));$('calClose').addEventListener('click',closeCal);
+$('mPrev').addEventListener('click',()=>{calM=Math.max(8,calM-1);buildCal()});$('mNext').addEventListener('click',()=>{calM=Math.min(9,calM+1);buildCal()});
+$('calToday').addEventListener('click',()=>{closeCal();setTimeout(()=>select(days.length-1,'focus'),260)});
+addEventListener('keydown',e=>{if(e.key==='Escape'&&calOpen)closeCal()});
+let toastT;function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('on');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('on'),2200)}
+function goJournal(){const tabs=document.querySelectorAll('.tab span');tabs.forEach((s,i)=>s.classList.toggle('on',i===1));toast('Opening Journal to record today’s moment');
+  setTimeout(()=>tabs.forEach((s,i)=>s.classList.toggle('on',i===4)),2400)}
+/* drag hint: shown until the first scroll, remembered per viewer */
+{let seen=false;try{seen=localStorage.getItem('river-hint-v1')==='1'}catch(e){}if(!seen)$('hint').classList.add('show');
+ const done=()=>{if(!$('hint').classList.contains('show'))return;$('hint').classList.remove('show');try{localStorage.setItem('river-hint-v1','1')}catch(e){}};
+ $('screen').addEventListener('pointermove',e=>{if(e.buttons)done()});$('screen').addEventListener('wheel',done,{passive:true});
+ const rb=document.getElementById('hintReset');if(rb)rb.addEventListener('click',()=>{try{localStorage.removeItem('river-hint-v1')}catch(e){}$('hint').classList.add('show')})}
+
+/* ---------- sizing & loop ---------- */
+let SDY=0;const FULL=(matchMedia('(max-width: 600px) and (pointer: coarse)').matches&&!/[?&]frame/.test(location.search))||/[?&]full/.test(location.search);if(FULL)document.body.classList.add('full');
+function size(){const st=$('stage'),ph=$('phone');let k;
+  if(FULL){k=innerWidth/390;const s=$('screen'),Hl=innerHeight/k;s.style.transform=`scale(${k})`;s.style.height=Hl+'px';SDY=Math.max(-160,Math.min(0,Hl-844));s.style.setProperty('--sdy',SDY+'px')}
+  else{const avail=Math.min(st.parentElement.clientWidth-32,innerWidth-32);k=Math.min(1,avail/414,Math.max(.6,(innerHeight-40)/868));ph.style.transform=`scale(${k})`;st.style.width=414*k+'px';st.style.height=868*k+'px'}
+  dpr=Math.min(2,(devicePixelRatio||1)*k);cv.width=Math.round(W*dpr);cv.height=Math.round(VH*dpr)}
+addEventListener('resize',size);size();
+select(sel,'browse');anim=null;C={...T};
+let last=performance.now();
+function loop(now){const dt=Math.min(.05,(now-last)/1000);last=now;if(document.hidden){requestAnimationFrame(loop);return}
+  if(amb&&!reduce)clock+=dt*(reading?.3:1);
+  if(anim){const p=Math.min(1,(now-anim.t0)/anim.dur),k=ease(p);for(const key in anim.to)C[key]=anim.from[key]+(anim.to[key]-anim.from[key])*k;if(p>=1)anim=null}
+  else{const e=1-Math.exp(-dt*(drag?16:6.5));for(const key in T)C[key]+=(T[key]-C[key])*e}
+  draw();requestAnimationFrame(loop)}
+(document.fonts?document.fonts.load('13px "Courier Prime"'):Promise.resolve()).catch(()=>{}).finally(()=>requestAnimationFrame(loop));
+}
+</script>
+</body>
+</html>
